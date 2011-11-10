@@ -12,27 +12,45 @@ public class imageReader {
 
 
 	String fileName = args[0];
-	int width = Integer.parseInt(args[1]);
-	int height = Integer.parseInt(args[2]);
+	//int width = Integer.parseInt(args[1]);
+	//int height = Integer.parseInt(args[2]);
+	width = Integer.parseInt(args[1]);
+	height = Integer.parseInt(args[2]);
 
-	BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+	//BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+	img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
 	try {
 	    File file = new File(fileName);
-	    InputStream is = new FileInputStream(file);
+	    //InputStream is = new FileInputStream(file);
+	    is = new FileInputStream(file);
+	} 
+	catch (IOException e) {
+	    e.printStackTrace();
+	}
 
-	    //long len = file.length();
-	    long len = width*height*3;
-	    
+	//long len = file.length();
+	len = width*height*3;
+
+	// Use a label to display the image
+	frame = new JFrame();
+	frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	
+	for(int i=0;i<1000;i++) {
+	    readBytes();
+	    newLabel();
+	}
+
+    }
+
+    private static void readBytes() {
+	try {
 	    byte[] bytes = new byte[(int)len];
-
 	    int offset = 0;
 	    int numRead = 0;
 	    while (offset < bytes.length && (numRead=is.read(bytes, offset, bytes.length-offset)) >= 0) {
 		offset += numRead;
 	    }
-
-
 	    int ind = 0;
 	    for(int y = 0; y < height; y++){
 
@@ -47,24 +65,28 @@ public class imageReader {
 		    //int pix = ((a << 24) + (r << 16) + (g << 8) + b);
 		    img.setRGB(x,y,pix);
 		    ind++;
-		}
+		} 
 	    }
-
-
-	} catch (FileNotFoundException e) {
-	    e.printStackTrace();
-	} catch (IOException e) {
+	} 
+	catch (IOException e) {
 	    e.printStackTrace();
 	}
+    }
 
-	// Use a label to display the image
-	JFrame frame = new JFrame();
-	JLabel label = new JLabel(new ImageIcon(img));
+    private static void newLabel() {
+	//JLabel label = new JLabel(new ImageIcon(img));
+	label = new JLabel(new ImageIcon(img));
 	frame.getContentPane().add(label, BorderLayout.CENTER);
 	frame.pack();
 	frame.setVisible(true);
-
     }
-    
+
+    private static int width;
+    private static int height;
+    private static long len;
+    private static InputStream is;
+    private static BufferedImage img;
+    private static JFrame frame;
+    private static JLabel label;
 
 }
