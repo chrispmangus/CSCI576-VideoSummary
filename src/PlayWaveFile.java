@@ -22,12 +22,13 @@ public class PlayWaveFile {
 	    System.err.println("usage: java -jar PlayWaveFile.jar [filename]");
 	    return;
 	}
-	String filename = args[0];
+	String afilename = args[0];
+	String vfilename = args[1];
 
 	// opens the inputStream
 	FileInputStream inputStream;
 	try {
-	    inputStream = new FileInputStream(filename);
+	    inputStream = new FileInputStream(afilename);
 	} catch (FileNotFoundException e) {
 	    e.printStackTrace();
 	    return;
@@ -35,14 +36,16 @@ public class PlayWaveFile {
 
 	// initializes the playSound Object
 	PlaySound playSound = new PlaySound(inputStream);
+	imageReader imageReader = new imageReader(vfilename);
+	
+	Thread t1 = new Thread(playSound);
+	Thread t2 = new Thread(imageReader);
+	
+	t1.start();
+	t2.start();
 
 	// plays the sound
-	try {
-	    playSound.play();
-	} catch (PlayWaveException e) {
-	    e.printStackTrace();
-	    return;
-	}
+	
     }
 
 }

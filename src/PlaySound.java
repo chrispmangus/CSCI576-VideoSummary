@@ -17,7 +17,7 @@ import javax.sound.sampled.DataLine.Info;
  * 
  * @author Giulio
  */
-public class PlaySound {
+public class PlaySound implements Runnable{
 
     private InputStream waveStream;
 
@@ -30,6 +30,15 @@ public class PlaySound {
 	this.waveStream = waveStream;
     }
 
+    public void run(){
+    	try {
+    	    this.play();
+    	} catch (PlayWaveException e) {
+    	    e.printStackTrace();
+    	    return;
+    	}
+    }
+    
     public void play() throws PlayWaveException {
 
 	AudioInputStream audioInputStream = null;

@@ -5,16 +5,22 @@ import java.io.*;
 import javax.swing.*;
 
 
-public class imageReader {
+public class imageReader implements Runnable{
 
+	public void run(){
+		play();
+	}
+	
+	public imageReader(String fileName){
+		this.fileName = fileName;
+	}
+	
+    private  void play(){
 
-    public static void main(String[] args) {
-
-
-	String fileName = args[0];
-	width = Integer.parseInt(args[1]);
-	height = Integer.parseInt(args[2]);
-
+	width = 320;
+	height = 240;
+	delay = 1000/24;
+	
 	img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
 
 	try {
@@ -31,20 +37,25 @@ public class imageReader {
 
 	    bytes = new byte[(int)len];
 	    label = new JLabel();
-	    icon = new ImageIcon();
-
-	    for(int i=0;i<4000;i++) {
+	    long tm = System.currentTimeMillis();
+	    for(int i=0;i<14400;i++) {
 		readBytes();
 		newLabel();
+		
+			tm += delay;
+			Thread.sleep(Math.max(0, tm - System.currentTimeMillis()));
 	    }
 	} 
 	catch (IOException e) {
 	    e.printStackTrace();
 	}
+	catch (InterruptedException e){
+		e.printStackTrace();
+	}
 
     }
 
-    private static void readBytes() {
+    private  void readBytes() {
 	try {
 	    //byte[] bytes = new byte[(int)len];
 	    int offset = 0;
@@ -74,7 +85,7 @@ public class imageReader {
 	}
     }
 
-    private static void newLabel() {
+    private void newLabel() {
 	//label = new JLabel(new ImageIcon(img));
 	
 	label.setIcon(new ImageIcon(img));
@@ -85,14 +96,14 @@ public class imageReader {
 	frame.setVisible(true);
     }
 
-    private static int width;
-    private static int height;
-    private static long len;
-    private static InputStream is;
-    private static BufferedImage img;
-    private static JFrame frame;
-    private static JLabel label;
-    private static byte[] bytes;
-    private static ImageIcon icon;
-    
+    private  String fileName;
+    private  int width;
+    private  int height;
+    private  long len;
+    private  InputStream is;
+    private  BufferedImage img;
+    private  JFrame frame;
+    private  JLabel label;
+    private  byte[] bytes;
+    private  int delay;
 }
