@@ -1,3 +1,6 @@
+// CSCI 576 Final Project
+// File:        PlaySound.java
+// Programmers: Christopher Mangus, Louis Schwartz
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -19,35 +22,45 @@ import javax.sound.sampled.DataLine.Info;
  */
 public class PlaySound implements Runnable{
 
-    private InputStream waveStream;
-
-    private final int EXTERNAL_BUFFER_SIZE = 524288; // 128Kb
-
     /**
      * CONSTRUCTOR
      */
-    public PlaySound(InputStream waveStream) {
+    public PlaySound(InputStream waveStream, int audStartDelay) {
 	this.waveStream = waveStream;
+	this.startDelay = audStartDelay;
     }
 
     public void run(){
-    	try {
-    	    this.play();
-    	} catch (PlayWaveException e) {
-    	    e.printStackTrace();
-    	    return;
-    	}
+	try {
+	    this.play();
+	} 
+	catch (PlayWaveException e) {
+	    e.printStackTrace();
+	    return;
+	}
     }
-    
+
     public void play() throws PlayWaveException {
+
+	long tm = System.currentTimeMillis();
+	try {
+	    tm += startDelay;
+	    Thread.sleep(Math.max(0, tm - System.currentTimeMillis()));
+	}
+	catch (InterruptedException e){
+	    e.printStackTrace();
+	}
+
 
 	AudioInputStream audioInputStream = null;
 	try {
-		InputStream bufferedIn = new BufferedInputStream(this.waveStream);
+	    InputStream bufferedIn = new BufferedInputStream(this.waveStream);
 	    audioInputStream = AudioSystem.getAudioInputStream(bufferedIn);
-	} catch (UnsupportedAudioFileException e1) {
+	} 
+	catch (UnsupportedAudioFileException e1) {
 	    throw new PlayWaveException(e1);
-	} catch (IOException e1) {
+	} 
+	catch (IOException e1) {
 	    throw new PlayWaveException(e1);
 	}
 
@@ -60,7 +73,8 @@ public class PlaySound implements Runnable{
 	try {
 	    dataLine = (SourceDataLine) AudioSystem.getLine(info);
 	    dataLine.open(audioFormat, this.EXTERNAL_BUFFER_SIZE);
-	} catch (LineUnavailableException e1) {
+	} 
+	catch (LineUnavailableException e1) {
 	    throw new PlayWaveException(e1);
 	}
 
@@ -76,15 +90,22 @@ public class PlaySound implements Runnable{
 			audioBuffer.length);
 		if (readBytes >= 0){
 		    dataLine.write(audioBuffer, 0, readBytes);
-		}
+		    //System.out.println(dataLine.getFramePosition());
+		}		   
 	    }
-	} catch (IOException e1) {
+	}
+	catch (IOException e1) {
 	    throw new PlayWaveException(e1);
-	} finally {
+	} 
+	finally {	    
 	    // plays what's left and and closes the audioChannel
 	    dataLine.drain();
 	    dataLine.close();
 	}
 
     }
+    
+    private InputStream waveStream;
+    private int startDelay;
+    private final int EXTERNAL_BUFFER_SIZE = 524288; // 128Kb
 }

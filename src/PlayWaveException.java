@@ -1,3 +1,6 @@
+// CSCI 576 Final Project
+// File:        PlayWaveException.java
+// Programmers: Christopher Mangus, Louis Schwartz
 
 /**
  * @author Giulio
