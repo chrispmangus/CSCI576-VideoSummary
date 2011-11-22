@@ -2,7 +2,7 @@
 // File:        PlayWaveFile.java
 // Programmers: Christopher Mangus, Louis Schwartz
 
-import java.io.File;
+//import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 //import java.io.IOException;
@@ -29,17 +29,13 @@ public class PlayWaveFile {
 	    }
 	    String afilename = args[0];
 	    String vfilename = args[1];	    
-	    
-	    // Start delay in milliseconds
-	    int vidStartDelay = 0;
-	    int audStartDelay = 0;
 
 	    // opens the inputStream
 	    FileInputStream inputStream = new FileInputStream(afilename);	    
 
-	    // initializes the playSound Object
-	    PlaySound playSound = new PlaySound(inputStream, audStartDelay);
-	    imageReader imageReader = new imageReader(vfilename, vidStartDelay);
+	    // initializes the playSound and imageReader Objects
+	    PlaySound playSound = new PlaySound(inputStream);
+	    imageReader imageReader = new imageReader(vfilename, playSound);
 
 	    Thread t1 = new Thread(playSound);
 	    Thread t2 = new Thread(imageReader);

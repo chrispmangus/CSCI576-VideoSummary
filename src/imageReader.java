@@ -14,24 +14,19 @@ public class imageReader implements Runnable{
 	play();
     }
 
-    public imageReader(String fileName, int vidStartDelay){
+    //public imageReader(String fileName, int vidStartDelay, PlaySound pSound){
+    public imageReader(String fileName, PlaySound pSound){
 	this.fileName = fileName;
-	this.startDelay = vidStartDelay;
+	//this.startDelay = vidStartDelay;
+	this.playSound = pSound;
     }
 
     private  void play(){
-
-	long tm = System.currentTimeMillis();
-	try {
-	    tm += startDelay;
-	    Thread.sleep(Math.max(0, tm - System.currentTimeMillis()));
-	}
-	catch (InterruptedException e){
-	    e.printStackTrace();
-	}
-
-	double delay = 1000/FPS;  // delay = milliseconds per frame
-
+	
+	//long tm = System.currentTimeMillis();
+	//double delay = 1000/FPS;  // delay = milliseconds per frame
+	 
+	
 	img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
 
 	try {
@@ -39,7 +34,7 @@ public class imageReader implements Runnable{
 	    is = new FileInputStream(file);
 
 	    long len = WIDTH*HEIGHT*3;
-	    long frames = file.length()/len;
+	    long numFrames = file.length()/len;
 	    
 	    JFrame frame = new JFrame();
 	    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -50,24 +45,64 @@ public class imageReader implements Runnable{
 
 	    imageReaderComponent component = new imageReaderComponent();
 	    //tm += delay;
+	
+	    // audio Samples Per video Frame
+	    double spf = playSound.getSampleRate()/FPS;
+	    System.out.println(spf);
+	    	   
+	    // Video Frame offsets to sync audio and video
+	    int offset = 5; // only seems to work for Sample 2	
+	    
+	    // Audio ahead of video, roll video forward to catch up
+	    int j=0;
+	    // Video ahead of audio, wait for audio to catch up
+	    while(j>Math.round(offset+playSound.getPosition()/spf)) {
+		// Do Nothing
+	    }
+	    while(j<Math.round(playSound.getPosition()/spf)) {
+		readBytes();
+		component.setImg(img);
+		frame.add(component);
+		frame.repaint();	
+		frame.setVisible(true);
+		j++;
+	    }
 
-	    for(int i=0;i<frames;i++) {	
-		tm = System.currentTimeMillis();
+	    
+	    for(int i=j;i<numFrames;i++) {
+		//tm = System.currentTimeMillis();
+
+		// Video ahead of audio, wait for audio to catch up
+		while(i>Math.round(offset+playSound.getPosition()/spf)) {
+		    // Do Nothing
+		}
+		
+		// Audio ahead of video, roll video forward to catch up
+		while(i<Math.round(playSound.getPosition()/spf)) {
+		    readBytes();
+		    component.setImg(img);
+		    frame.add(component);
+		    frame.repaint();	
+		    frame.setVisible(true);	
+		    i++;
+		}
 		readBytes();
 		component.setImg(img);
 		frame.add(component);
 		frame.repaint();
 		frame.setVisible(true);		
-		tm += delay;
-		Thread.sleep(Math.max(0, tm - System.currentTimeMillis()));
+		//tm += delay;
+		//Thread.sleep(Math.max(0, tm - System.currentTimeMillis()));
 	    }
 	} 
 	catch (IOException e) {
 	    e.printStackTrace();
 	}
+	/*
 	catch (InterruptedException e){
 	    e.printStackTrace();
 	}
+	*/
     }
 
     private  void readBytes() {
@@ -95,12 +130,13 @@ public class imageReader implements Runnable{
 	}
     }
 
+    private PlaySound playSound;
     private String fileName;
     private final int WIDTH = 320;
     private final int HEIGHT = 240;
-    private final double FPS = 23.976;
+    //private final double FPS = 23.976; // Frames Per Second
+    private final double FPS = 24; // Frames Per Second
     private InputStream is;
     private BufferedImage img;
     private byte[] bytes;
-    private int startDelay;
 }

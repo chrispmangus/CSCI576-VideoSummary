@@ -6,6 +6,9 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+//import java.io.File;
+
+//import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -25,9 +28,10 @@ public class PlaySound implements Runnable{
     /**
      * CONSTRUCTOR
      */
-    public PlaySound(InputStream waveStream, int audStartDelay) {
+    //public PlaySound(InputStream waveStream, int audStartDelay) {
+    public PlaySound(InputStream waveStream) {
 	this.waveStream = waveStream;
-	this.startDelay = audStartDelay;
+	//this.startDelay = audStartDelay;
     }
 
     public void run(){
@@ -41,17 +45,6 @@ public class PlaySound implements Runnable{
     }
 
     public void play() throws PlayWaveException {
-
-	long tm = System.currentTimeMillis();
-	try {
-	    tm += startDelay;
-	    Thread.sleep(Math.max(0, tm - System.currentTimeMillis()));
-	}
-	catch (InterruptedException e){
-	    e.printStackTrace();
-	}
-
-
 	AudioInputStream audioInputStream = null;
 	try {
 	    InputStream bufferedIn = new BufferedInputStream(this.waveStream);
@@ -65,11 +58,11 @@ public class PlaySound implements Runnable{
 	}
 
 	// Obtain the information about the AudioInputStream
-	AudioFormat audioFormat = audioInputStream.getFormat();
+	audioFormat = audioInputStream.getFormat();
 	Info info = new Info(SourceDataLine.class, audioFormat);
 
 	// opens the audio channel
-	SourceDataLine dataLine = null;
+	dataLine = null;
 	try {
 	    dataLine = (SourceDataLine) AudioSystem.getLine(info);
 	    dataLine.open(audioFormat, this.EXTERNAL_BUFFER_SIZE);
@@ -88,10 +81,9 @@ public class PlaySound implements Runnable{
 	    while (readBytes != -1) {
 		readBytes = audioInputStream.read(audioBuffer, 0,
 			audioBuffer.length);
-		if (readBytes >= 0){
+		if (readBytes >= 0) {
 		    dataLine.write(audioBuffer, 0, readBytes);
-		    //System.out.println(dataLine.getFramePosition());
-		}		   
+		}
 	    }
 	}
 	catch (IOException e1) {
@@ -102,10 +94,18 @@ public class PlaySound implements Runnable{
 	    dataLine.drain();
 	    dataLine.close();
 	}
-
     }
     
+    public long getPosition() {
+	return dataLine.getLongFramePosition();
+    }
+    
+    public float getSampleRate() {
+	return audioFormat.getFrameRate();
+    }
+    
+    private SourceDataLine dataLine;
+    private AudioFormat audioFormat;
     private InputStream waveStream;
-    private int startDelay;
     private final int EXTERNAL_BUFFER_SIZE = 524288; // 128Kb
 }
