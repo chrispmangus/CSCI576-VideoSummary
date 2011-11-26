@@ -42,7 +42,7 @@ public class videoSummarize {
 	    InputStream inputStream = new FileInputStream(aFileName);
 
 	    /*
-	    // Print Header byte info
+	    // Print Header byte info. Will throw an exception for the rest of the method.
 	    byte[] header = new byte[headerLen];
 	    inputStream.read(header, 0, headerLen);
 	    for(int i=0;i<headerLen;i++) {
@@ -63,24 +63,81 @@ public class videoSummarize {
 	    long totNumBytes = soundFile.length(); 					// Total original audio file length in bytes
 	    int numChan = audioFormat.getChannels();					// Number of Channels (= 1)
 	    int bytesPerSample = audioFormat.getFrameSize();				// Number of bytes per sample (= 2)
+	    float sampleRate = audioFormat.getFrameRate();				// Sample Rate (= 22050 Hz)
+	    float bytesPerSecond = sampleRate*bytesPerSample;				// Number bytes per second (= 44100 Hz)
 	    long totNumSamples = (totNumBytes-headerLen)/(bytesPerSample*numChan);	// Total original number of audio samples
 	    int numSamplesReq = (int)(totNumSamples*percent);
 	    int numBytesReq = (int)numSamplesReq*2;
-	    //System.out.println(numSamplesReq);
 
 	    int readBytes = 0;
 	    byte[] audioBuffer = new byte[EXTERNAL_BUFFER_SIZE];
+	    byte[] audioBufferOld = new byte[EXTERNAL_BUFFER_SIZE];
 	    OutputStream outputStream = new FileOutputStream("audioOutput.wav");
 
-	    buildHeader(outputStream, numBytesReq, headerLen);
+	    buildHeader(outputStream, numBytesReq, headerLen, audioFormat);
 
+	    int rollSamples = (int)sampleRate/2; // The pre/post roll is the number of samples that are written before/after the target byte	    
+	    int threshold = 80; // Amplitude threshold
+
+	    int roll = rollSamples*2; // Convert samples to bytes
+	    boolean firstIter = true;
 	    while (readBytes != -1) {
+		audioBufferOld=audioBuffer;
 		readBytes = audioInputStream.read(audioBuffer, 0, audioBuffer.length);
-		if ((readBytes >= 0)&&(numSamplesReq>0)) {
-		    outputStream.write(audioBuffer, 0, readBytes);
-		    numSamplesReq -= readBytes/2;
+		if((readBytes >= 0)&&(numBytesReq>0)) {
+		    // Checks most significant byte for amplitude. 
+		    //  If greater than threshold, one second before and after the peak are copied to the new wav file.
+		    for(int i=1;i<audioBuffer.length;i+=2) { // Each sample is 2 bytes, MSB is second byte
+			if(audioBuffer[i]>=threshold) {
+			    i += roll;
+
+			    // If the pre-roll extends beyond the beginning of the audio file
+			    if(firstIter&&((i-roll)<0)) {
+				for(int j=1;j<(i+roll);j+=2) {
+				    outputStream.write(audioBuffer[j-1]);
+				    outputStream.write(audioBuffer[j]);
+				}
+				numBytesReq -= (i+roll); 
+			    }
+
+			    // If the pre-roll extends into the previous buffer
+			    else if((i-roll)<0) {
+				for(int j=(audioBuffer.length-(roll-i)); j<audioBuffer.length; j+=2) {
+				    outputStream.write(audioBufferOld[j-1]);
+				    outputStream.write(audioBufferOld[j]);
+				}
+				for(int j=1;j<(i+roll);j+=2) {
+				    outputStream.write(audioBuffer[j-1]);
+				    outputStream.write(audioBuffer[j]);
+				}
+				numBytesReq -= 2*roll;
+			    }
+
+			    // If the post roll extends into the future buffer.
+			    //  Doesn't take into account the information from the future buffer at this time.
+			    else if(i+roll>audioBuffer.length){
+				for(int j=(i-roll);j<audioBuffer.length;j+=2) {
+				    outputStream.write(audioBuffer[j-1]);
+				    outputStream.write(audioBuffer[j]);
+				}
+				numBytesReq -= (audioBuffer.length-(i-roll));
+			    }
+
+			    // All of the pre and post roll are included in this buffer
+			    else {
+				for(int j=(i-roll);j<(i+roll);j+=2) {
+				    outputStream.write(audioBuffer[j-1]);				
+				    outputStream.write(audioBuffer[j]);				
+				}
+				numBytesReq -= 2*roll;
+			    }
+			}
+		    }
+		    //numSamplesReq -= readBytes/2;
 		}
+		firstIter = false;
 	    }
+	    //System.out.println(numBytesReq);
 	}
 	catch(FileNotFoundException e) {
 	    e.printStackTrace();
@@ -96,7 +153,7 @@ public class videoSummarize {
 	System.out.println("done");
     }
 
-    private static void buildHeader(OutputStream outputStream, long totNumBytes, int headerLen) throws PlayWaveException {
+    private static void buildHeader(OutputStream outputStream, long numBytes, int headerLen, AudioFormat audioFormat) throws PlayWaveException {
 	try {
 	    // Build header (byte values taken from original wav files)
 	    // Byte order is LITTLE ENDIAN!
@@ -116,7 +173,7 @@ public class videoSummarize {
 	    //  Ns = Number of Samples
 	    //	0 or 1: padding byte at end if M*Nc*Ns is odd
 	    // Can calculate by taking total file size in bytes - headerLen - 8
-	    long riffckSize = totNumBytes-8;
+	    long riffckSize = numBytes-8;
 
 	    // Calculate the little endian byte pair equivalent of RIFF chunk size
 	    byte[] b = new byte[4];
@@ -163,32 +220,87 @@ public class videoSummarize {
 
 	    // 0x0001
 	    // nChannels (Nc): 1 (mono)
-	    outputStream.write(0x01);
-	    outputStream.write(0x00);
+	    int numChannels = audioFormat.getChannels();
+	    for(int i=0;i<2;i++) {
+		if(Math.floor(numChannels/Math.pow(16, 2-(2*i)))!=0) {
+		    b[i] = (byte)Math.floor(numChannels/Math.pow(16, 2-(2*i)));
+		    numChannels -= Math.pow(16, 2-(2*i));
+		}
+		else {
+		    b[i] = 0x00;
+		}
+		//System.out.println(b[i]+" ");
+	    }
+	    outputStream.write(b[1]); // 0x01
+	    outputStream.write(b[0]); // 0x00
 
 	    // 0x00005622
 	    // nSamplesPerSec (F): 22050 Hz
-	    outputStream.write(0x22);
-	    outputStream.write(0x56);
-	    outputStream.write(0x00);
-	    outputStream.write(0x00);
+	    float sampleRate = audioFormat.getFrameRate();
+	    for(int i=0;i<4;i++) {
+		if(Math.floor(sampleRate/Math.pow(16, 6-(2*i)))!=0) {
+		    b[i] = (byte)Math.floor(sampleRate/Math.pow(16, 6-(2*i)));
+		    sampleRate -= Math.pow(16, 6-(2*i));
+		}
+		else {
+		    b[i] = 0x00;
+		}
+		//System.out.println(b[i]+" ");
+	    }
+	    outputStream.write(b[3]); //0x22
+	    outputStream.write(b[2]); //0x56
+	    outputStream.write(b[1]); //0x00
+	    outputStream.write(b[0]); //0x00
 
 	    // 0x0000ac44
 	    // nAvgBytesPerSec (F*M*Nc): 44100 Hz
-	    outputStream.write(0x44);
-	    outputStream.write(0xac);
-	    outputStream.write(0x00);
-	    outputStream.write(0x00);
+	    float bytesPerSec = audioFormat.getFrameRate()*audioFormat.getFrameSize()*audioFormat.getChannels();
+	    for(int i=0;i<4;i++) {
+		if(Math.floor(bytesPerSec/Math.pow(16, 6-(2*i)))!=0) {
+		    b[i] = (byte)Math.floor(bytesPerSec/Math.pow(16, 6-(2*i)));
+		    bytesPerSec -= Math.pow(16, 6-(2*i));
+		}
+		else {
+		    b[i] = 0x00;
+		}
+		//System.out.println(b[i]+" ");
+	    }
+	    outputStream.write(b[3]); //0x44
+	    outputStream.write(b[2]); //0xac
+	    outputStream.write(b[1]); //0x00
+	    outputStream.write(b[0]); //0x00
 
 	    // 0x0002
 	    // nBlockAlign (M*Nc): 2 bytes/frame
-	    outputStream.write(2);
-	    outputStream.write(0);
+	    int bytesPerFrame = audioFormat.getFrameSize();
+	    for(int i=0;i<2;i++) {
+		if(Math.floor(bytesPerFrame/Math.pow(16, 2-(2*i)))!=0) {
+		    b[i] = (byte)Math.floor(bytesPerFrame/Math.pow(16, 2-(2*i)));
+		    bytesPerFrame -= Math.pow(16, 2-(2*i));
+		}
+		else {
+		    b[i] = 0x00;
+		}
+		//System.out.println(b[i]+" ");
+	    }
+	    outputStream.write(b[1]); //0x02
+	    outputStream.write(b[0]); //0x00
 
 	    // 0x0010
 	    // wBitsPerSample (8*M): 16 bits/sample
-	    outputStream.write(0x10);
-	    outputStream.write(0x00);
+	    int bitsPerSample = 8*audioFormat.getFrameSize();
+	    for(int i=0;i<2;i++) {
+		if(Math.floor(bitsPerSample/Math.pow(16, 2-(2*i)))!=0) {
+		    b[i] = (byte)Math.floor(bitsPerSample/Math.pow(16, 2-(2*i)));
+		    bitsPerSample -= Math.pow(16, 2-(2*i));
+		}
+		else {
+		    b[i] = 0x00;
+		}
+		//System.out.println(b[i]+" ");
+	    }
+	    outputStream.write(0x10); //0x10
+	    outputStream.write(0x00); //0x00
 
 	    // 0x0000
 	    // cbSize: 0
@@ -209,7 +321,7 @@ public class videoSummarize {
 	    //  Ns = Number of Samples
 	    //	0 or 1: padding byte at end if M*Nc*Ns is odd
 	    // Can calculate by taking total file size in bytes - headerLen
-	    long datackSize = totNumBytes-headerLen;
+	    long datackSize = numBytes-headerLen;
 
 	    // Calculate the little endian byte pair equivalent of data chunk size
 	    //byte[] b = new byte[4];
