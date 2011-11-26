@@ -95,15 +95,15 @@ public class PlaySound implements Runnable{
 	    dataLine.close();
 	}
     }
-    
+
     public long getPosition() {
 	return dataLine.getLongFramePosition();
     }
-    
+
     public float getSampleRate() {
 	return audioFormat.getFrameRate();
     }
-    
+
     private SourceDataLine dataLine;
     private AudioFormat audioFormat;
     private InputStream waveStream;

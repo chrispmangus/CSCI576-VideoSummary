@@ -22,11 +22,11 @@ public class imageReader implements Runnable{
     }
 
     private  void play(){
-	
+
 	//long tm = System.currentTimeMillis();
 	//double delay = 1000/FPS;  // delay = milliseconds per frame
-	 
-	
+
+
 	img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
 
 	try {
@@ -35,7 +35,7 @@ public class imageReader implements Runnable{
 
 	    long len = WIDTH*HEIGHT*3;
 	    long numFrames = file.length()/len;
-	    
+
 	    JFrame frame = new JFrame();
 	    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	    frame.setTitle("Wumpi Player");
@@ -45,20 +45,17 @@ public class imageReader implements Runnable{
 
 	    imageReaderComponent component = new imageReaderComponent();
 	    //tm += delay;
-	
+
 	    // audio Samples Per video Frame
 	    double spf = playSound.getSampleRate()/FPS;
 	    System.out.println(spf);
-	    	   
+
 	    // Video Frame offsets to sync audio and video
-	    int offset = 5; // only seems to work for Sample 2	
-	    
+	    //int offset = 5; // only seems to work for Sample 2	
+	    int offset = 0;
 	    // Audio ahead of video, roll video forward to catch up
 	    int j=0;
-	    // Video ahead of audio, wait for audio to catch up
-	    while(j>Math.round(offset+playSound.getPosition()/spf)) {
-		// Do Nothing
-	    }
+
 	    while(j<Math.round(playSound.getPosition()/spf)) {
 		readBytes();
 		component.setImg(img);
@@ -68,7 +65,11 @@ public class imageReader implements Runnable{
 		j++;
 	    }
 
-	    
+	    // Video ahead of audio, wait for audio to catch up
+	    while(j>Math.round(offset+playSound.getPosition()/spf)) {
+		// Do Nothing
+	    }
+
 	    for(int i=j;i<numFrames;i++) {
 		//tm = System.currentTimeMillis();
 
@@ -76,7 +77,7 @@ public class imageReader implements Runnable{
 		while(i>Math.round(offset+playSound.getPosition()/spf)) {
 		    // Do Nothing
 		}
-		
+
 		// Audio ahead of video, roll video forward to catch up
 		while(i<Math.round(playSound.getPosition()/spf)) {
 		    readBytes();
@@ -102,7 +103,7 @@ public class imageReader implements Runnable{
 	catch (InterruptedException e){
 	    e.printStackTrace();
 	}
-	*/
+	 */
     }
 
     private  void readBytes() {

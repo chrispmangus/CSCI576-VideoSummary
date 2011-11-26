@@ -18,6 +18,6 @@ public class imageReaderComponent extends JComponent {
     public void setImg(BufferedImage newimg) {
 	this.img = newimg;
     }
-    
+
     private BufferedImage img;
 }
