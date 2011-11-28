@@ -28,14 +28,18 @@ public class PlayWaveFile {
 		return;
 	    }
 	    String afilename = args[0];
-	    String vfilename = args[1];	    
-
+	    String vfilename = args[1];	 
+	    
+	    
+	    int aDelay = 0;
+	    int vDelay = 0;
+	    
 	    // opens the inputStream
-	    FileInputStream inputStream = new FileInputStream(afilename);	    
+	    FileInputStream inputStream = new FileInputStream(afilename);
 
 	    // initializes the playSound and imageReader Objects
-	    PlaySound playSound = new PlaySound(inputStream);
-	    imageReader imageReader = new imageReader(vfilename, playSound);
+	    PlaySound playSound = new PlaySound(inputStream, aDelay);
+	    imageReader imageReader = new imageReader(vfilename, playSound, vDelay);
 
 	    Thread t1 = new Thread(playSound);
 	    Thread t2 = new Thread(imageReader);
