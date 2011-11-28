@@ -28,10 +28,9 @@ public class PlaySound implements Runnable{
     /**
      * CONSTRUCTOR
      */
-    //public PlaySound(InputStream waveStream, int audStartDelay) {
-    public PlaySound(InputStream waveStream) {
+    public PlaySound(InputStream waveStream, int audStartDelay) {
 	this.waveStream = waveStream;
-	//this.startDelay = audStartDelay;
+	this.startDelay = audStartDelay;
     }
 
     public void run(){
@@ -60,7 +59,6 @@ public class PlaySound implements Runnable{
 	// Obtain the information about the AudioInputStream
 	audioFormat = audioInputStream.getFormat();
 	Info info = new Info(SourceDataLine.class, audioFormat);
-
 	// opens the audio channel
 	dataLine = null;
 	try {
@@ -79,20 +77,22 @@ public class PlaySound implements Runnable{
 
 	try {
 	    while (readBytes != -1) {
-		readBytes = audioInputStream.read(audioBuffer, 0,
-			audioBuffer.length);
+		readBytes = audioInputStream.read(audioBuffer, startDelay, audioBuffer.length-startDelay);
+		startDelay = 0;
 		if (readBytes >= 0) {
 		    dataLine.write(audioBuffer, 0, readBytes);
 		}
+
 	    }
 	}
 	catch (IOException e1) {
 	    throw new PlayWaveException(e1);
 	} 
-	finally {	    
+	
+	finally {	
 	    // plays what's left and and closes the audioChannel
 	    dataLine.drain();
-	    dataLine.close();
+	    //dataLine.close();
 	}
     }
 
@@ -104,8 +104,9 @@ public class PlaySound implements Runnable{
 	return audioFormat.getFrameRate();
     }
 
+    private int startDelay;
     private SourceDataLine dataLine;
     private AudioFormat audioFormat;
     private InputStream waveStream;
-    private final int EXTERNAL_BUFFER_SIZE = 524288; // 128Kb
+    private final int EXTERNAL_BUFFER_SIZE = 524288; 
 }

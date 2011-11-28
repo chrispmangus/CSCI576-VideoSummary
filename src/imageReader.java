@@ -15,9 +15,9 @@ public class imageReader implements Runnable{
     }
 
     //public imageReader(String fileName, int vidStartDelay, PlaySound pSound){
-    public imageReader(String fileName, PlaySound pSound){
+    public imageReader(String fileName, PlaySound pSound, int startDelay){
 	this.fileName = fileName;
-	//this.startDelay = vidStartDelay;
+	this.startDelay = startDelay;
 	this.playSound = pSound;
     }
 
@@ -48,11 +48,11 @@ public class imageReader implements Runnable{
 
 	    // audio Samples Per video Frame
 	    double spf = playSound.getSampleRate()/FPS;
-	    System.out.println(spf);
+	    //System.out.println(spf);
 
 	    // Video Frame offsets to sync audio and video
-	    //int offset = 5; // only seems to work for Sample 2	
-	    int offset = 0;
+	    int offset = 5; // only seems to work for Sample 2	
+	    //int offset = 0;
 	    // Audio ahead of video, roll video forward to catch up
 	    int j=0;
 
@@ -67,6 +67,7 @@ public class imageReader implements Runnable{
 
 	    // Video ahead of audio, wait for audio to catch up
 	    while(j>Math.round(offset+playSound.getPosition()/spf)) {
+
 		// Do Nothing
 	    }
 
@@ -131,6 +132,7 @@ public class imageReader implements Runnable{
 	}
     }
 
+    private int startDelay;
     private PlaySound playSound;
     private String fileName;
     private final int WIDTH = 320;
