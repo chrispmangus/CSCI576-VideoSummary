@@ -38,6 +38,14 @@ public class videoSummarize {
 	    String vFileName = args[0];
 	    String aFileName = args[1];	
 	    double percent = Double.parseDouble(args[2]);
+	    
+	     /*video segmenting code
+	    videoSegment vs = new videoSegment(vFileName);
+	    vs.analyze();
+	    if you want to see the breaks yourself
+	    	vs.printBreaks();
+	    some array list = vs.getBreaks(); */
+	    
 
 	    writeVideo(vFileName, audioSumm(aFileName, percent));
 
