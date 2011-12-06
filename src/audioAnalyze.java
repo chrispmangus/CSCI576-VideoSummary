@@ -127,17 +127,19 @@ public class audioAnalyze {
 				// Sorts the LinkedList in order of highest audio weighted shots first
 				ListIterator<Double> iter = weights.listIterator();
 				for(int j=1;j<weights.size();j+=2) {
-				    iter.next(); // First entry is the break number. Ignore it for the comparison.
-				    if(wgtAvg>iter.next()) {
-					weights.add(j-1,(double)index);
-					weights.add(j,wgtAvg);
-					j=weights.size();
-				    }
-				    // Add to the end if smallest value
-				    else if(j==(weights.size()-1)) {
-					weights.addLast((double)index);
-					weights.addLast(wgtAvg);
-					j=weights.size();
+				    if(iter.hasNext()) {
+					iter.next(); // First entry is the break number. Ignore it for the comparison.
+					if(wgtAvg>iter.next()) {
+					    weights.add(j-1,(double)index);
+					    weights.add(j,wgtAvg);
+					    j=weights.size();
+					}
+					// Add to the end if smallest value
+					else if(j==(weights.size()-1)) {
+					    weights.addLast((double)index);
+					    weights.addLast(wgtAvg);
+					    j=weights.size();
+					}
 				    }
 				}
 			    }
@@ -171,14 +173,18 @@ public class audioAnalyze {
 		// Sorts the LinkedList in order of highest audio weighted shots first
 		ListIterator<Double> iter = weights.listIterator();
 		for(int j=1;j<weights.size();j+=2) {
-		    iter.next(); // First entry is the break number. Ignore it for the comparison.
-		    if(wgtAvg>iter.next()) {
-			weights.add(j-1,(double)index);
-			weights.add(j,wgtAvg);
-			j=weights.size();
+		    if(iter.hasNext()) {
+			iter.next(); // First entry is the break number. Ignore it for the comparison.
+			if(wgtAvg>iter.next()) {
+			    weights.add(j-1,(double)index);
+			    weights.add(j,wgtAvg);
+			    j=weights.size();
+			}
 		    }
 		}
 	    }
+
+	    System.out.println("Weights: "+weights);
 
 	    // Calculate the required shot number based on required number of frames (based on the percentage)
 	    // finalShots contains the required percentage of shot numbers based on the percentage
@@ -186,7 +192,7 @@ public class audioAnalyze {
 	    ListIterator<Double> iterW = weights.listIterator();
 	    double framesSoFar = 0;
 
-	    while(framesSoFar<numFramesReq) {
+	    while((framesSoFar<numFramesReq)&&iterW.hasNext()) {
 		double ind = iterW.next();
 		double wgt = iterW.next();
 
@@ -197,13 +203,15 @@ public class audioAnalyze {
 		else {
 		    ListIterator<Integer> iterF = finalShotNums.listIterator();
 		    for(int i=0;i<finalShotNums.size();i++) {
-			if(ind<iterF.next()) {
-			    finalShotNums.add(i,(int)ind);
-			    i=finalShotNums.size();
-			}
-			else if(i==(finalShotNums.size()-1)) {
-			    finalShotNums.addLast((int)ind);
-			    i=finalShotNums.size();
+			if(iterF.hasNext()) {
+			    if(ind<iterF.next()) {
+				finalShotNums.add(i,(int)ind);
+				i=finalShotNums.size();
+			    }
+			    else if(i==(finalShotNums.size()-1)) {
+				finalShotNums.addLast((int)ind);
+				i=finalShotNums.size();
+			    }
 			}
 		    }
 		}
@@ -498,13 +506,16 @@ public class audioAnalyze {
 
 	    OutputStream outputStream = new FileOutputStream("audioOutput.wav");
 	    int count=0;
-	    long firstByte= framesToBytes(shots.get(count));
-	    long lastByte = framesToBytes(shots.get(count+1));
-	    count+=2;
-
+	    long firstByte=0;
+	    long lastByte=0;
+	    if(shots.size()!=0) {
+		firstByte= framesToBytes(shots.get(count));
+		lastByte = framesToBytes(shots.get(count+1));
+		count+=2;
+	    }
 	    // Calculate final number of audio bytes in the summary
 	    long totalBytes = 0;
-	    for(int i=0;i<shots.size()-1;i++) {
+	    for(int i=0;i<shots.size()-1;i+=2) {
 		totalBytes+=framesToBytes(shots.get(i+1)-shots.get(i));
 	    }
 
@@ -539,6 +550,17 @@ public class audioAnalyze {
 		    }
 		}
 	    }
+
+	    // Print the total time of the compressed file
+	    System.out.print("Video compressed by "+(int)(percent*100)+"% to: ");
+	    int minutes = (int)Math.floor((double)totalBytes/(bytesPerSecond*60.0));
+	    int seconds = (int)Math.floor(((double)totalBytes/bytesPerSecond)-60.0*minutes);
+	    if(seconds<10) {
+		System.out.println(minutes+":0"+seconds);
+	    }
+	    else {
+		System.out.println(minutes+":"+seconds);
+	    }
 	}
 	catch(FileNotFoundException e) {
 	    e.printStackTrace();
@@ -562,9 +584,13 @@ public class audioAnalyze {
 
 	    OutputStream vidOutputStream = new FileOutputStream("videoOutput.rgb");
 	    int count=0;
-	    int firstFrame = shots.get(count);
-	    int lastFrame = shots.get(count+1);
-	    count+=2;
+	    int firstFrame=0;
+	    int lastFrame=0;
+	    if(shots.size()!=0) {
+		firstFrame = shots.get(count);
+		lastFrame = shots.get(count+1);
+		count+=2;
+	    }
 	    System.out.println("Writing Video...0%");
 	    for(int i=0;i<numFrames;i++) {
 		int offset = 0;

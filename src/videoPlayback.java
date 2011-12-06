@@ -17,17 +17,17 @@ public class videoPlayback {
     public static void main(String[] args) {
 	try {
 	    // get the command line parameters
-	    if (args.length < 1) {
+	    if (args.length < 2) {
 		System.err.println("usage: java videoPlayback video.rgb audio.wav");
 		return;
 	    }
 	    String vfilename = args[0];
 	    String afilename = args[1];	 
-	    
-	    
+
+
 	    int aDelay = 0;
 	    int vDelay = 0;
-	    
+
 	    // opens the inputStream
 	    FileInputStream inputStream = new FileInputStream(afilename);
 
