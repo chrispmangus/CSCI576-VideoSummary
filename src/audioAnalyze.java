@@ -19,14 +19,31 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
+/**
+ * This class takes in the shot breaks and analyzes the average audio level over each shot.
+ * Then, each shot is weighted, and only the highest given percentage of shots are retained for the summary.
+ * @author Christopher Mangus     
+ * @author Louis Schwartz
+ */
 public class audioAnalyze {
 
-    audioAnalyze(String vName, String aName, double per) {
+    /**
+     * The constructor for audioAnalyze.
+     * @param vName The name of the video input file
+     * @param aName The name of the audio input file
+     * @param per The real percentage value, in the range [0,1]. 0 means 0% compression and returns original file.
+     */
+    public audioAnalyze(String vName, String aName, double per) {
 	vFileName = vName;
 	aFileName = aName;
 	percent = per;
     }
 
+    /**
+     * This method executes the bulk of the work in this class.
+     * @return The array list finalShots, which contains the start and end frames for each shot in the summary.
+     * @throws PlayWaveException
+     */
     public ArrayList<Integer> calcAudioWeights() throws PlayWaveException {
 
 	// This is the original list of shot break numbers
@@ -43,11 +60,11 @@ public class audioAnalyze {
 	    File soundFile = new File(aFileName);
 	    InputStream inputStream = new FileInputStream(soundFile);
 
-	    /*
 	    // Print Header byte info. Will throw an exception for the rest of the method.
-	    byte[] header = new byte[headerLen];
-	    inputStream.read(header, 0, headerLen);
-	    for(int i=0;i<headerLen;i++) {
+	    /*
+	    byte[] header = new byte[HEADER_LEN];
+	    inputStream.read(header, 0, HEADER_LEN);
+	    for(int i=0;i<HEADER_LEN;i++) {
 		if(i%10==0) {
 		    System.out.println();		    
 		}
@@ -68,7 +85,7 @@ public class audioAnalyze {
 	    //double bytesPerSecond = sampleRate*bytesPerSample;					// Number bytes per second (= 44100 Hz)
 	    long totNumSamples = (long)((totFileBytes-HEADER_LEN)/(bytesPerSample*numChan));	// Total original number of audio samples
 	    long totNumBytes = (long)(totNumSamples*2);						// Total original number of audio bytes
-	    long numSamplesReq = (long)(totNumSamples*percent);  					// Number of Samples Required by percentage
+	    long numSamplesReq = (long)(totNumSamples*(1-percent));  					// Number of Samples Required by percentage
 	    long numBytesReq = (long)numSamplesReq*2;            					// Number of Bytes Required by percentage
 
 	    bytesPerVidFrame = bytesPerSample*sampleRate*(1/FPS);
@@ -95,6 +112,7 @@ public class audioAnalyze {
 	    double wgtAvg = 0;
 	    long breakPoint = framesToBytes(breaks.get(index));
 	    System.out.println("AnalyzingAudio...");
+
 	    // While there are still bytes to read from the input stream
 	    while(readBytes != -1) {
 		readBytes = audioInputStream.read(audioBuffer, 0, audioBuffer.length);
@@ -107,7 +125,6 @@ public class audioAnalyze {
 
 			// If we have not reached the break point yet, keep summing for the average calculation
 			if(byteCount<breakPoint) {
-			    //wgtTotal+=audioBuffer[i]&0xff; // Convert signed hex to unsigned int
 			    wgtTotal+=audioBuffer[i]; 
 			    wgtCount++;
 			}
@@ -145,7 +162,6 @@ public class audioAnalyze {
 			    }
 
 			    wgtTotal = 0;
-			    //wgtTotal+=audioBuffer[i]&0xff;
 			    wgtTotal+=audioBuffer[i];
 			    wgtCount = 0;
 			    wgtCount++;
@@ -168,8 +184,8 @@ public class audioAnalyze {
 
 	    // Add in the last shot
 	    if(index==breaks.size()) {
-		//System.out.println("adding to byte: "+byteCount+", frame: "+bytesToFrames(byteCount));
 		wgtAvg = wgtTotal/wgtCount;
+
 		// Sorts the LinkedList in order of highest audio weighted shots first
 		ListIterator<Double> iter = weights.listIterator();
 		for(int j=1;j<weights.size();j+=2) {
@@ -194,7 +210,7 @@ public class audioAnalyze {
 
 	    while((framesSoFar<numFramesReq)&&iterW.hasNext()) {
 		double ind = iterW.next();
-		double wgt = iterW.next();
+		double wgt = iterW.next(); // Shot weight unused at this point
 
 		// Sort the final list of shot numbers 
 		if(finalShotNums.size()==0) {
@@ -220,16 +236,15 @@ public class audioAnalyze {
 		if(ind==0) {
 		    framesSoFar+=breaks.get((int)ind);
 		}
-		// Else, f
+		// Else if we've reach the last shot...
 		else if(ind==breaks.size()) {
 		    framesSoFar+=(totNumFrames-breaks.get((int)ind-1));
 		}
+		// Else we're still in the middle of the breaks
 		else {
 		    framesSoFar+=(breaks.get((int)ind)-breaks.get((int)ind-1)); 
 		}
 	    }
-
-	    //System.out.println(finalShotNums);
 
 	    // Build the list of frames to write in the final summary
 	    // List format: first frame of shot, second frame of shot, first frame of shot, second frame of shot, ...
@@ -259,7 +274,6 @@ public class audioAnalyze {
 	catch(FileNotFoundException e) {
 	    e.printStackTrace();
 	    return null;
-	    //return;
 	}
 	catch (UnsupportedAudioFileException e1) {
 	    throw new PlayWaveException(e1);
@@ -267,13 +281,11 @@ public class audioAnalyze {
 	catch (IOException e1) {
 	    throw new PlayWaveException(e1);
 	}
-
 	return finalShots;
-
     }
 
     /**
-     * This method constructs the header for the wav file
+     * This method constructs the header for the wav file.
      * @param outputStream The FileOutputStream to which the wav file is being written
      * @param numBytes The total number of bytes in the data chunk
      * @param audioFormat AudioFormat object contains numChannels, frameRate, and frameSize
@@ -471,14 +483,29 @@ public class audioAnalyze {
 	}
     }
 
+    /**
+     * Simply converts number of bytes to number of frames
+     * @param bytes The number of bytes
+     * @return The equivalent number of frames
+     */
     public long bytesToFrames(double bytes) {
 	return Math.round(bytes*vidFramesPerByte);
     }
 
+    /**
+     * Simply converts number of frames to number of bytes
+     * @param frames The number of frames
+     * @return The equivalent number of bytes
+     */
     public long framesToBytes(double frames) {
 	return (long)(frames*bytesPerVidFrame);
     }
 
+    /**
+     * Writes a summarized audio file.
+     * @param shots The ArrayList of start/end frames of each shot to be written
+     * @throws PlayWaveException
+     */
     public void writeAudio(ArrayList<Integer> shots) throws PlayWaveException {
 	try {
 	    File soundFile = new File(aFileName);
@@ -495,14 +522,9 @@ public class audioAnalyze {
 	    double bytesPerSecond = sampleRate*bytesPerSample;					// Number bytes per second (= 44100 Hz)
 	    long totNumSamples = (long)((totFileBytes-HEADER_LEN)/(bytesPerSample*numChan));	// Total original number of audio samples
 	    long totNumBytes = (long)(totNumSamples*2);						// Total original number of audio bytes
-	    //long numSamplesReq = (long)(totNumSamples*percent);  					// Number of Samples Required by percentage
-	    //long numBytesReq = (long)numSamplesReq*2;            					// Number of Bytes Required by percentage
 
 	    bytesPerVidFrame = bytesPerSample*sampleRate*(1/FPS);
 	    vidFramesPerByte = 1/bytesPerVidFrame;
-
-	    //int numFramesReq = (int)bytesToFrames(numBytesReq);
-	    //int totNumFrames = (int)bytesToFrames(totNumBytes);
 
 	    OutputStream outputStream = new FileOutputStream("audioOutput.wav");
 	    int count=0;
@@ -513,6 +535,7 @@ public class audioAnalyze {
 		lastByte = framesToBytes(shots.get(count+1));
 		count+=2;
 	    }
+
 	    // Calculate final number of audio bytes in the summary
 	    long totalBytes = 0;
 	    for(int i=0;i<shots.size()-1;i+=2) {
@@ -527,7 +550,6 @@ public class audioAnalyze {
 	    System.out.println("Writing Audio...0%");
 	    while (readBytes != -1) {
 		readBytes = audioInputStream.read(audioBuffer, 0, audioBuffer.length);
-		//System.out.println(readBytes);
 		if(readBytes >= 0) {  
 		    for(int i=1;i<readBytes;i+=2) { // Each sample is 2 bytes
 
@@ -574,6 +596,10 @@ public class audioAnalyze {
 	}
     }
 
+    /**
+     * Writes a summarized video file.
+     * @param shots The ArrayList of start/end frames of each shot to be written
+     */
     public void writeVideo(ArrayList<Integer> shots) {
 	try {
 	    File file = new File(vFileName);
@@ -637,5 +663,4 @@ public class audioAnalyze {
     //private final double FPS = 23.976; // Frames Per Second
     private final double FPS = 24; // Frames Per Second
     private final int EXTERNAL_BUFFER_SIZE = 524288; // 128Kb
-
 }

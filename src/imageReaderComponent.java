@@ -6,8 +6,16 @@ import java.awt.*;
 import java.awt.image.*;
 import javax.swing.JComponent;
 
+/**
+ * Component class used in conjunction with imageReader.
+ * @author Christopher Mangus     
+ * @author Louis Schwartz
+ */
 public class imageReaderComponent extends JComponent {
 
+    /**
+     * Paint component method.
+     */
     public void paintComponent(Graphics g) {
 
 	// Recover Graphics2D
@@ -15,6 +23,10 @@ public class imageReaderComponent extends JComponent {
 	g2.drawImage(img,0,0,this);
     }
 
+    /**
+     * Sets this img to the new img.
+     * @param newimg The new BufferedImage
+     */
     public void setImg(BufferedImage newimg) {
 	this.img = newimg;
     }

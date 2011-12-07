@@ -6,9 +6,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-//import java.io.File;
-
-//import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
@@ -18,21 +15,24 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 import javax.sound.sampled.DataLine.Info;
 
 /**
- * 
- * <Replace this with a short description of the class.>
- * 
- * @author Giulio
+ * This class plays the audio file.
+ * Used some skeleton code given by the TAs as a basis for this class.
+ * @author Christopher Mangus     
+ * @author Louis Schwartz
  */
 public class PlaySound implements Runnable{
 
     /**
-     * CONSTRUCTOR
+     * The constructor for PlaySound
+     * @param waveStream The audio file input stream
      */
-    public PlaySound(InputStream waveStream, int audStartDelay) {
+    public PlaySound(InputStream waveStream) {
 	this.waveStream = waveStream;
-	this.startDelay = audStartDelay;
     }
 
+    /**
+     * Instantiates the play method.
+     */
     public void run(){
 	try {
 	    this.play();
@@ -43,6 +43,10 @@ public class PlaySound implements Runnable{
 	}
     }
 
+    /**
+     * Plays the audio file.
+     * @throws PlayWaveException
+     */
     public void play() throws PlayWaveException {
 	AudioInputStream audioInputStream = null;
 	try {
@@ -77,8 +81,7 @@ public class PlaySound implements Runnable{
 
 	try {
 	    while (readBytes != -1) {
-		readBytes = audioInputStream.read(audioBuffer, startDelay, audioBuffer.length-startDelay);
-		startDelay = 0;
+		readBytes = audioInputStream.read(audioBuffer, 0, audioBuffer.length);
 		if (readBytes >= 0) {
 		    dataLine.write(audioBuffer, 0, readBytes);
 		}
@@ -88,7 +91,7 @@ public class PlaySound implements Runnable{
 	catch (IOException e1) {
 	    throw new PlayWaveException(e1);
 	} 
-	
+
 	finally {	
 	    // plays what's left and and closes the audioChannel
 	    dataLine.drain();
@@ -104,7 +107,6 @@ public class PlaySound implements Runnable{
 	return audioFormat.getFrameRate();
     }
 
-    private int startDelay;
     private SourceDataLine dataLine;
     private AudioFormat audioFormat;
     private InputStream waveStream;

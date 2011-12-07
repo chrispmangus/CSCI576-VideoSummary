@@ -3,15 +3,18 @@
 // Programmers: Christopher Mangus, Louis Schwartz
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 
-
+/**
+ * The driver for the video summarization algorithms.
+ * @author Christopher Mangus     
+ * @author Louis Schwartz
+ *
+ */
 public class videoSummarize {
 
     /**
      * Main method for videoSummarize
-     * 
-     * @param args
+     * @param args Command line arguments
      */
     public static void main(String[] args) {
 	try {
@@ -23,21 +26,13 @@ public class videoSummarize {
 	    String aFileName = args[1];	
 	    double percent = Double.parseDouble(args[2]);
 
-	    /*video segmenting code
-	    videoSegment vs = new videoSegment(vFileName);
-	    vs.analyze();
-	    if you want to see the breaks yourself
-	    	vs.printBreaks();
-	    some array list = vs.getBreaks(); */
-
 	    audioAnalyze aa = new audioAnalyze(vFileName,aFileName,percent);
 	    ArrayList<Integer> shots = new ArrayList<Integer>();
 	    shots = aa.calcAudioWeights();
 	    aa.writeVideo(shots);
-	    aa = new audioAnalyze(vFileName,aFileName,percent);
 	    aa.writeAudio(shots);
 
-	    System.out.println("done");
+	    System.out.println("Summarization Complete!");
 	}	
 
 	catch (PlayWaveException e) {

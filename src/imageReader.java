@@ -2,30 +2,43 @@
 // File:        imageReader.java
 // Programmers: Christopher Mangus, Louis Schwartz
 
-//import java.awt.*;
 import java.awt.image.*;
 import java.io.*;
 import javax.swing.*;
 
-
+/**
+ * The video player.
+ * Used some skeleton code given by the TAs as a basis for this class.
+ * @author Christopher Mangus     
+ * @author Louis Schwartz
+ * 
+ */
 public class imageReader implements Runnable{
 
+    /**
+     * Instantiates the play method.
+     */
     public void run(){
 	play();
     }
 
-    //public imageReader(String fileName, int vidStartDelay, PlaySound pSound){
-    public imageReader(String fileName, PlaySound pSound, int startDelay){
+    /**
+     * Constructor for imageReader
+     * @param fileName The raw RGB input file name
+     * @param pSound The PlaySound object, used to get the sample rate and current audio position
+     */
+    public imageReader(String fileName, PlaySound pSound){
 	this.fileName = fileName;
-	this.startDelay = startDelay;
 	this.playSound = pSound;
     }
 
-    private  void play(){
+    /**
+     * Plays the video file to a JFrame.
+     */
+    private void play(){
 
-	//long tm = System.currentTimeMillis();
-	//double delay = 1000/FPS;  // delay = milliseconds per frame
-
+	// Used to output frame number for debugging
+	frameCounter=0;
 
 	img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
 
@@ -44,15 +57,13 @@ public class imageReader implements Runnable{
 	    bytes = new byte[(int)len];
 
 	    imageReaderComponent component = new imageReaderComponent();
-	    //tm += delay;
 
 	    // audio Samples Per video Frame
 	    double spf = playSound.getSampleRate()/FPS;
-	    //System.out.println(spf);
 
 	    // Video Frame offsets to sync audio and video
 	    int offset = 5; // only seems to work for Sample 2	
-	    //int offset = 0;
+
 	    // Audio ahead of video, roll video forward to catch up
 	    int j=0;
 
@@ -67,13 +78,10 @@ public class imageReader implements Runnable{
 
 	    // Video ahead of audio, wait for audio to catch up
 	    while(j>Math.round(offset+playSound.getPosition()/spf)) {
-
 		// Do Nothing
 	    }
 
 	    for(int i=j;i<numFrames;i++) {
-		//tm = System.currentTimeMillis();
-
 		// Video ahead of audio, wait for audio to catch up
 		while(i>Math.round(offset+playSound.getPosition()/spf)) {
 		    // Do Nothing
@@ -93,21 +101,26 @@ public class imageReader implements Runnable{
 		frame.add(component);
 		frame.repaint();
 		frame.setVisible(true);		
-		//tm += delay;
-		//Thread.sleep(Math.max(0, tm - System.currentTimeMillis()));
 	    }
 	} 
 	catch (IOException e) {
 	    e.printStackTrace();
 	}
-	/*
-	catch (InterruptedException e){
-	    e.printStackTrace();
-	}
-	 */
     }
 
+    /**
+     * Reads in the bytes of raw RGB data for a frame.
+     */
     private  void readBytes() {
+	frameCounter++;
+	
+	// Prints frame number every second if necessary.
+	/*
+	if(frameCounter%32==0) {
+	    System.out.println(frameCounter);
+	}
+	*/
+	
 	try {
 	    int offset = 0;
 	    int numRead = 0;
@@ -132,7 +145,7 @@ public class imageReader implements Runnable{
 	}
     }
 
-    private int startDelay;
+    private long frameCounter;
     private PlaySound playSound;
     private String fileName;
     private final int WIDTH = 320;
