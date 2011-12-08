@@ -105,7 +105,7 @@ public class audioAnalyze {
 	    breaks = vs.getBreaks();
 
 	    System.out.println("Shot Breaks: "+breaks);
-	    //System.out.println(breaks.size());
+	    System.out.println("Shot Breaks Size: "+breaks.size());
 
 	    System.out.println("Running motionAnalyzer...");
 	    motionAnalyzer ma = new motionAnalyzer(vFileName,breaks);
@@ -113,12 +113,12 @@ public class audioAnalyze {
 	    //motionWs1 = ma.analyzeBlockAverage();
 
 	    System.out.println("Motion Weights: "+motionWs);
-	    //System.out.println(motionWs.size());
+	    System.out.println("Motion Weights Size: "+motionWs.size());
 
 	    System.out.println("AnalyzingAudio...");
 	    audioWs = getAudioWeights(breaks, audioInputStream);
 	    System.out.println("Audio Weights: "+audioWs);
-	    //System.out.println(audioWs.size());
+	    System.out.println("Audio Weights Size: "+audioWs.size());
 
 	    double shotInd = 1;
 	    double combWgt = 0;
@@ -469,9 +469,9 @@ public class audioAnalyze {
 	int wgtCount = 0;
 	double max = Double.NEGATIVE_INFINITY;
 	long breakPoint = framesToBytes(breaks.get(index));
-
+	index++;
 	try {
-	    boolean last = false;
+	    // boolean last = false;
 
 	    // While there are still bytes to read from the input stream
 	    while(readBytes != -1) {
@@ -490,15 +490,19 @@ public class audioAnalyze {
 			}
 
 			// At the breakpoint, calculate the average for the previous shot and reset the average weight counters for the next shot			
-			else if(!last) {
+			else { 
+			 //   System.out.print("index: "+index);
+			   // System.out.print(" break: "+breakPoint);
+			    //System.out.println(" add: "+wgtTotal/wgtCount);
 			    aWeights.add(wgtTotal/wgtCount);
 			    wgtTotal = 0;
 			    wgtTotal+=audioBuffer[i];
 			    wgtCount = 0;
 			    wgtCount++;
-			    index++;
+			    //index++;
 			    if(index<breaks.size()) {
 				breakPoint=framesToBytes(breaks.get(index));
+				index++;
 			    }
 			    else {
 				readBytes = -1;
@@ -509,6 +513,9 @@ public class audioAnalyze {
 		}
 	    }
 
+	    if(aWeights.size()<breaks.size()-1) {
+		aWeights.add(wgtTotal/wgtCount);
+	    }
 
 	    // Normalize the audio weights
 	    for(int i=0;i<aWeights.size();i++) {
