@@ -49,6 +49,10 @@ public class audioAnalyze {
 	// This is the original list of shot break numbers
 	ArrayList<Integer> breaks = new ArrayList<Integer>();
 
+	ArrayList<Double> motionWs = new ArrayList<Double>();
+
+	ArrayList<Double> audioWs = new ArrayList<Double>();
+
 	// This is a sorted list of shots based on audio weight
 	// List is organized as: BreakNum, Weight, BreakNum, Weight, etc...
 	LinkedList<Double> weights = new LinkedList<Double>();
@@ -94,113 +98,67 @@ public class audioAnalyze {
 	    int numFramesReq = (int)bytesToFrames(numBytesReq);
 	    int totNumFrames = (int)bytesToFrames(totNumBytes);
 
-	    int readBytes = 0;
-	    byte[] audioBuffer = new byte[EXTERNAL_BUFFER_SIZE];
-
 	    System.out.println("Running videoSegment...");
 	    videoSegment vs = new videoSegment(vFileName);
 	    vs.analyze();
-	    //vs.printBreaks();
 	    breaks = vs.getBreaks();
 
 	    System.out.println("Shot Breaks: "+breaks);
+	    //System.out.println(breaks.size());
 
-	    long byteCount = 0;
-	    int index = 1;
-	    double wgtTotal = 0;
-	    int wgtCount = 0;
-	    double wgtAvg = 0;
-	    long breakPoint = framesToBytes(breaks.get(index));
+	    System.out.println("Running motionAnalyzer...");
+	    motionAnalyzer ma = new motionAnalyzer(vFileName,breaks);
+	    motionWs =  ma.analyzeFullscreenAverage();
+
+	    System.out.println("Motion Weights: "+motionWs);
+	    //System.out.println(motionWs.size());
+
 	    System.out.println("AnalyzingAudio...");
+	    audioWs = getAudioWeights(breaks, audioInputStream);
+	    System.out.println("Audio Weights: "+audioWs);
+	    //System.out.println(audioWs.size());
 
-	    // While there are still bytes to read from the input stream
-	    while(readBytes != -1) {
-		readBytes = audioInputStream.read(audioBuffer, 0, audioBuffer.length);
+	    double shotInd = 1;
+	    double combWgt = 0;
 
-		// More bytes to read from the audio input stream
-		if(readBytes >= 0) {
+	    for(int i=0;i<breaks.size()-1;i++) {
 
-		    // Scan through only the MSBs of the buffer (every other odd byte)
-		    for(int i=1;i<readBytes;i+=2) { 
+		// ***************************************
+		// This is where the weights are combined.		
+		combWgt = audioWs.get(i)+motionWs.get(i);
+		// ***************************************
 
-			// If we have not reached the break point yet, keep summing for the average calculation
-			if(byteCount<breakPoint) {
-			    wgtTotal+=audioBuffer[i]; 
-			    wgtCount++;
-			}
-
-			// At the breakpoint, calculate the average for the previous shot and reset the average weight counters for the next shot
-			else {
-			    wgtAvg = wgtTotal/wgtCount;
-
-			    // If this is the first entry into the weighted list, just add the break index and weight to the list
-			    if(weights.size()==0) {
-				weights.add((double)index);
-				weights.add(wgtAvg);				
+		// If this is the first entry into the weighted list, just add shot number and weight to the list
+		if(weights.size()==0) {
+		    weights.add(shotInd);
+		    weights.add(combWgt);
+		    shotInd++;
+		}
+		// Else insert the shot number and weight so that the list is sorted from highest weight to lowest weight
+		else {
+		    // Sorts the LinkedList in order of highest audio weighted shots first
+		    ListIterator<Double> iter = weights.listIterator();
+		    for(int j=1;j<weights.size();j+=2) {
+			if(iter.hasNext()) {
+			    iter.next(); // First entry is the break number. Ignore it for the comparison.
+			    if(combWgt>iter.next()) {
+				weights.add(j-1,shotInd);
+				weights.add(j,combWgt);
+				j=weights.size();
 			    }
-
-			    // Else insert the break index and weight so that the list is sort from highest weight to lowest weight
-			    else {
-				// Sorts the LinkedList in order of highest audio weighted shots first
-				ListIterator<Double> iter = weights.listIterator();
-				for(int j=1;j<weights.size();j+=2) {
-				    if(iter.hasNext()) {
-					iter.next(); // First entry is the break number. Ignore it for the comparison.
-					if(wgtAvg>iter.next()) {
-					    weights.add(j-1,(double)index);
-					    weights.add(j,wgtAvg);
-					    j=weights.size();
-					}
-					// Add to the end if smallest value
-					else if(j==(weights.size()-1)) {
-					    weights.addLast((double)index);
-					    weights.addLast(wgtAvg);
-					    j=weights.size();
-					}
-				    }
-				}
-			    }
-
-			    wgtTotal = 0;
-			    wgtTotal+=audioBuffer[i];
-			    wgtCount = 0;
-			    wgtCount++;
-			    index++;
-
-			    // If we've read through all of the breakpoints, set the final breakpoint as the end of the data
-			    if(index>=breaks.size()) {
-				breakPoint=totNumBytes;
-			    }
-
-			    // Else set the next breakpoint according to the list
-			    else {
-				breakPoint=framesToBytes(breaks.get(index));
+			    // Add to the end if smallest value
+			    else if(j==(weights.size()-1)) {
+				weights.addLast(shotInd);
+				weights.addLast(combWgt);
+				j=weights.size();
 			    }
 			}
-			byteCount+=2;
 		    }
+		    shotInd++;
 		}
 	    }
 
-	    // Add in the last shot
-	    if(index==breaks.size()) {
-		wgtAvg = wgtTotal/wgtCount;
-
-		// Sorts the LinkedList in order of highest audio weighted shots first
-		ListIterator<Double> iter = weights.listIterator();
-		for(int j=1;j<weights.size();j+=2) {
-		    if(iter.hasNext()) {
-			iter.next(); // First entry is the break number. Ignore it for the comparison.
-			if(wgtAvg>iter.next()) {
-			    weights.add(j-1,(double)index);
-			    weights.add(j,wgtAvg);
-			    j=weights.size();
-			}
-		    }
-		}
-	    }
-
-	    System.out.println("Weights: "+weights);
+	    System.out.println("Combined Weights: "+weights);
 
 	    // Calculate the required shot number based on required number of frames (based on the percentage)
 	    // finalShots contains the required percentage of shot numbers based on the percentage
@@ -253,18 +211,8 @@ public class audioAnalyze {
 
 	    while(iterF.hasNext()) {
 		int shotNum = iterF.next();
-		if(shotNum==0) {
-		    finalShots.add(0);
-		    finalShots.add(breaks.get(0));
-		}
-		else if(shotNum==breaks.size()) {
-		    finalShots.add(breaks.get(shotNum-1));
-		    finalShots.add(totNumFrames);
-		}
-		else {
-		    finalShots.add(breaks.get(shotNum-1));
-		    finalShots.add(breaks.get(shotNum)-1);
-		}
+		finalShots.add(breaks.get(shotNum-1));
+		finalShots.add(breaks.get(shotNum)-1);
 	    }
 
 	    System.out.println("AnalyzingAudio...Complete");
@@ -499,6 +447,82 @@ public class audioAnalyze {
      */
     public long framesToBytes(double frames) {
 	return (long)(frames*bytesPerVidFrame);
+    }
+
+    /**
+     * This method gets the audio weights for each shot
+     * @param breaks The list of shot break points
+     * @param audioInputStream The audio input stream to read from
+     * @param totNumBytes Total number of audio bytes
+     * @return The list of audio weights
+     * @throws PlayWaveException
+     */
+    public ArrayList<Double> getAudioWeights(ArrayList<Integer> breaks, AudioInputStream audioInputStream) throws PlayWaveException {
+	ArrayList<Double> aWeights = new ArrayList<Double>();
+	int readBytes = 0;
+	byte[] audioBuffer = new byte[EXTERNAL_BUFFER_SIZE];
+	long byteCount = 0;
+	int index = 1;
+	double wgtTotal = 0;
+	int wgtCount = 0;
+	double max = Double.NEGATIVE_INFINITY;
+	long breakPoint = framesToBytes(breaks.get(index));
+
+	try {
+	    boolean last = false;
+
+	    // While there are still bytes to read from the input stream
+	    while(readBytes != -1) {
+		readBytes = audioInputStream.read(audioBuffer, 0, audioBuffer.length);
+
+		// More bytes to read from the audio input stream
+		if(readBytes >= 0) {
+
+		    // Scan through only the MSBs of the buffer (every other odd byte)
+		    for(int i=1;i<readBytes;i+=2) { 
+
+			// If we have not reached the break point yet, keep summing for the average calculation
+			if(byteCount<breakPoint) {
+			    wgtTotal+=audioBuffer[i]; 
+			    wgtCount++;
+			}
+
+			// At the breakpoint, calculate the average for the previous shot and reset the average weight counters for the next shot			
+			else if(!last) {
+			    aWeights.add(wgtTotal/wgtCount);
+			    wgtTotal = 0;
+			    wgtTotal+=audioBuffer[i];
+			    wgtCount = 0;
+			    wgtCount++;
+			    index++;
+			    if(index<breaks.size()) {
+				breakPoint=framesToBytes(breaks.get(index));
+			    }
+			    else {
+				readBytes = -1;
+			    }
+			}
+			byteCount+=2;
+		    }
+		}
+	    }
+
+
+	    // Normalize the audio weights
+	    for(int i=0;i<aWeights.size();i++) {
+		if(aWeights.get(i)>max) {
+		    max = aWeights.get(i);
+		}
+	    }
+	    for(int i=0;i<aWeights.size();i++) {
+		double val = aWeights.get(i);
+		aWeights.set(i, max/val);
+	    }
+	}
+	catch (IOException e1) {
+	    throw new PlayWaveException(e1);
+	}
+	return aWeights;
     }
 
     /**
