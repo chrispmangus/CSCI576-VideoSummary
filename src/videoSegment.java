@@ -31,7 +31,7 @@ public class videoSegment {
 			
 			/* read in the first frame to seed the process */
 		    readBytes(histogramPrev);
-			breaks.add(1);
+			breaks.add(0);
 			
 			/* compareHist = compare every x frame
 			   tillCompareHist = countdown till compareHist
