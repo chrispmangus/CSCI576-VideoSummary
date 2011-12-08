@@ -13,7 +13,7 @@ public class motionAnalyzer {
     private byte[] bytes;
     private double[][] pastFrameY;
     private double[][] currFrameY;
-    private double THRESHOLD = 2.0;
+    private double THRESHOLD = 1.0;
 	
 	motionAnalyzer(String fileName, ArrayList<Integer> breaks){
 		this.fileName = fileName;
@@ -30,7 +30,6 @@ public class motionAnalyzer {
 			
 			long frameByteSize = WIDTH*HEIGHT*3;
 		    long numFrames = file.length()/frameByteSize;
-		    breaks.add((int)numFrames);
 		   
 
 		    bytes = new byte[(int)frameByteSize];
@@ -40,11 +39,7 @@ public class motionAnalyzer {
 			
 			double pastAverage = 0.0;
 			double currAverage = 0.0;
-			
-			readBytes(pastFrameY);
-			pastAverage = createEntireFrameAvg(pastFrameY);
-			
-			
+						
 			for(int i = 0; i < breaks.size()-1; i++){
 				int frameStart = breaks.get(i);
 				int frameEnd = breaks.get(i+1);
@@ -88,10 +83,86 @@ public class motionAnalyzer {
 		return movementPercents;
 	}
 	
+	
+	public ArrayList<Double> analyzeBlockAverage(){
+		File file;
+		ArrayList<Double> movementPercents = new ArrayList<Double>();
+		
+		try{
+			file = new File(fileName);
+			is = new FileInputStream(file);
+			
+			long frameByteSize = WIDTH*HEIGHT*3;
+		    long numFrames = file.length()/frameByteSize;
+		   
+
+		    bytes = new byte[(int)frameByteSize];
+		    			
+			pastFrameY = new double[HEIGHT][WIDTH];
+			currFrameY = new double[HEIGHT][WIDTH];
+			
+			double[][] pastAverage = new double[HEIGHT/16][WIDTH/16];
+			double[][] currAverage = new double[HEIGHT/16][WIDTH/16];
+					
+			
+			for(int i = 0; i < breaks.size()-1; i++){
+				int frameStart = breaks.get(i);
+				int frameEnd = breaks.get(i+1);
+				System.out.println("BREAK " + frameStart + " TO " + frameEnd);
+				boolean flag = false;
+				
+				int total = 0;
+				readBytes(pastFrameY);
+				pastAverage = createAverageBlocks(pastFrameY);
+				
+				for(int j = 1; j <frameEnd-frameStart; j++){
+					if(flag){
+			    		
+			    		readBytes(currFrameY);
+			    		currAverage = createAverageBlocks(currFrameY);
+			    		
+			    		total += breaksInBlocks(pastAverage,currAverage);
+			    		
+			    		copyBackAvg(pastAverage,currAverage);
+			    		copyBackToPast(currFrameY);
+			    		flag = !flag;
+			    	}
+			    	else{
+			    		flag = !flag;
+			    		skipBytes(frameByteSize);
+			    	}
+				}
+				
+				System.out.println("total breaks: " + total);
+				
+			}
+			
+		    is.close();
+		    System.out.println("done");
+			
+		}
+		catch(IOException e){
+			e.printStackTrace();
+		}
+		
+		return movementPercents;
+	}
+	
+	
+	
+	
 	private void copyBackToPast(double[][] newFrame){
 		for(int i = 0; i < HEIGHT; i++){
 			for(int j = 0; j < WIDTH; j++){
 				pastFrameY[i][j] = newFrame[i][j];
+			}
+		}
+	}
+	
+	private void copyBackAvg(double[][] past, double[][] curr){
+		for(int i = 0; i < (HEIGHT/16); i++){
+			for(int j = 0; j < (WIDTH/16); j++){
+				past[i][j] = curr[i][j];
 			}
 		}
 	}
@@ -108,7 +179,19 @@ public class motionAnalyzer {
 		return avg/(HEIGHT*WIDTH);
 	}
 	
-	public double[][] createAverageBlocks(double[][] frame){
+	private int breaksInBlocks(double[][] pastAvg, double[][] currAvg){
+		int thresholdBreaks = 0;
+		for(int i = 0; i < (HEIGHT/16); i++){
+			for(int j = 0; j < (WIDTH/16); j++){
+				if(Math.abs(pastAvg[i][j] - currAvg[i][j]) > THRESHOLD){
+					thresholdBreaks++;
+				}
+			}
+		}
+		return thresholdBreaks;
+	}
+	
+	private double[][] createAverageBlocks(double[][] frame){
 		double[][] averageYforFrame = new double[HEIGHT/16][WIDTH/16];
 		for(int iBlock = 0; iBlock < (HEIGHT/16); iBlock++){
 			for(int jBlock = 0; jBlock < (WIDTH/16); jBlock++){
