@@ -106,7 +106,7 @@ public class audioAnalyze {
 	    System.out.println("Shot Breaks: "+breaks);
 
 	    long byteCount = 0;
-	    int index = 0;
+	    int index = 1;
 	    double wgtTotal = 0;
 	    int wgtCount = 0;
 	    double wgtAvg = 0;
