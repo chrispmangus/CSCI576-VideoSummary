@@ -21,7 +21,6 @@ public class videoSegment {
 			
 			long frameByteSize = WIDTH*HEIGHT*3;
 		    long numFrames = file.length()/frameByteSize;
-
 		   
 
 		    bytes = new byte[(int)frameByteSize];
@@ -69,6 +68,7 @@ public class videoSegment {
 			    pastBreak--;
 		    }
 		    is.close();
+		    breaks.add((int)numFrames);
 			
 		}
 		catch(IOException e){
