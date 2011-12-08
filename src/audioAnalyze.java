@@ -110,15 +110,33 @@ public class audioAnalyze {
 	    System.out.println("Running motionAnalyzer...");
 	    motionAnalyzer ma = new motionAnalyzer(vFileName,breaks);
 	    motionWs =  ma.analyzeFullscreenAverage();
-	    //motionWs1 = ma.analyzeBlockAverage();
+	    motionWs1 = ma.analyzeBlockAverage();
 
 	    System.out.println("Motion Weights: "+motionWs);
 	    System.out.println("Motion Weights Size: "+motionWs.size());
+	    double average = 0;
+	    for(int i=0;i<motionWs.size();i++) {
+		average+=motionWs.get(i);
+	    }
+	    System.out.println("Motion Weights Average Value: "+average/motionWs.size());
+	    
+	    System.out.println("Motion Weights1: "+motionWs1);
+	    System.out.println("Motion Weights1 Size: "+motionWs1.size());
+	    average=0;
+	    for(int i=0;i<motionWs1.size();i++) {
+		average+=motionWs1.get(i);
+	    }
+	    System.out.println("Motion Weights1 Average Value: "+average/motionWs1.size());
 
 	    System.out.println("AnalyzingAudio...");
 	    audioWs = getAudioWeights(breaks, audioInputStream);
 	    System.out.println("Audio Weights: "+audioWs);
 	    System.out.println("Audio Weights Size: "+audioWs.size());
+	    average=0;
+	    for(int i=0;i<audioWs.size();i++) {
+		average+=audioWs.get(i);
+	    }
+	    System.out.println("Audio Weights Average Value: "+average/audioWs.size());
 
 	    double shotInd = 1;
 	    double combWgt = 0;
@@ -127,7 +145,7 @@ public class audioAnalyze {
 
 		// ***************************************
 		// This is where the weights are combined.	
-		combWgt = audioWs.get(i) + motionWs.get(i);// +  motionWs1.get(i);
+		combWgt = 0.4*audioWs.get(i) + motionWs.get(i) +  0.1*motionWs1.get(i);
 		// ***************************************
 
 		// If this is the first entry into the weighted list, just add shot number and weight to the list
@@ -513,7 +531,7 @@ public class audioAnalyze {
 		}
 	    }
 
-	    if(aWeights.size()<breaks.size()-1) {
+	    while(aWeights.size()<breaks.size()-1) {
 		aWeights.add(wgtTotal/wgtCount);
 	    }
 
