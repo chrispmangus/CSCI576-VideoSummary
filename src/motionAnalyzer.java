@@ -3,11 +3,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class motionAnalyzer {
 	private ArrayList<Integer> breaks;
 	private final int WIDTH = 320;
     private final int HEIGHT = 240;
+    private final long frameByteSize = WIDTH * HEIGHT * 3;
     private String fileName;
     private InputStream is;
     private byte[] bytes;
@@ -27,10 +29,6 @@ public class motionAnalyzer {
 		try{
 			file = new File(fileName);
 			is = new FileInputStream(file);
-			
-			long frameByteSize = WIDTH*HEIGHT*3;
-		    long numFrames = file.length()/frameByteSize;
-		   
 
 		    bytes = new byte[(int)frameByteSize];
 		    			
@@ -44,7 +42,7 @@ public class motionAnalyzer {
 				int frameStart = breaks.get(i);
 				int frameEnd = breaks.get(i+1);
 				int thresholdBreaks = 0;
-				System.out.println("BREAK " + frameStart + " TO " + frameEnd);
+				//System.out.println("BREAK " + frameStart + " TO " + frameEnd);
 				boolean flag = false;
 				
 				readBytes(pastFrameY);
@@ -73,7 +71,7 @@ public class motionAnalyzer {
 			}
 			
 		    is.close();
-		    System.out.println("done");
+		    //System.out.println("done");
 			
 		}
 		catch(IOException e){
@@ -86,15 +84,12 @@ public class motionAnalyzer {
 	
 	public ArrayList<Double> analyzeBlockAverage(){
 		File file;
-		ArrayList<Double> movementPercents = new ArrayList<Double>();
+		ArrayList<Integer> movementBreaks = new ArrayList<Integer>();
+		ArrayList<Double> movementPerc = new ArrayList<Double>();
 		
 		try{
 			file = new File(fileName);
-			is = new FileInputStream(file);
-			
-			long frameByteSize = WIDTH*HEIGHT*3;
-		    long numFrames = file.length()/frameByteSize;
-		   
+			is = new FileInputStream(file);	   
 
 		    bytes = new byte[(int)frameByteSize];
 		    			
@@ -108,7 +103,7 @@ public class motionAnalyzer {
 			for(int i = 0; i < breaks.size()-1; i++){
 				int frameStart = breaks.get(i);
 				int frameEnd = breaks.get(i+1);
-				System.out.println("BREAK " + frameStart + " TO " + frameEnd);
+				//System.out.println("BREAK " + frameStart + " TO " + frameEnd);
 				boolean flag = false;
 				
 				int total = 0;
@@ -132,20 +127,23 @@ public class motionAnalyzer {
 			    		skipBytes(frameByteSize);
 			    	}
 				}
+				movementBreaks.add(total);
 				
-				System.out.println("total breaks: " + total);
 				
 			}
 			
 		    is.close();
-		    System.out.println("done");
+		    //System.out.println("done");
 			
 		}
 		catch(IOException e){
 			e.printStackTrace();
 		}
-		
-		return movementPercents;
+		double div = (double)Collections.max(movementBreaks);
+		for(int i: movementBreaks){
+			movementPerc.add((double)i / div);
+		}
+		return movementPerc;
 	}
 	
 	

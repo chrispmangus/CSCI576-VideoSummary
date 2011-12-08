@@ -50,6 +50,7 @@ public class audioAnalyze {
 	ArrayList<Integer> breaks = new ArrayList<Integer>();
 
 	ArrayList<Double> motionWs = new ArrayList<Double>();
+	ArrayList<Double> motionWs1 = new ArrayList<Double>();
 
 	ArrayList<Double> audioWs = new ArrayList<Double>();
 
@@ -109,6 +110,7 @@ public class audioAnalyze {
 	    System.out.println("Running motionAnalyzer...");
 	    motionAnalyzer ma = new motionAnalyzer(vFileName,breaks);
 	    motionWs =  ma.analyzeFullscreenAverage();
+	    //motionWs1 = ma.analyzeBlockAverage();
 
 	    System.out.println("Motion Weights: "+motionWs);
 	    //System.out.println(motionWs.size());
@@ -124,8 +126,8 @@ public class audioAnalyze {
 	    for(int i=0;i<breaks.size()-1;i++) {
 
 		// ***************************************
-		// This is where the weights are combined.		
-		combWgt = audioWs.get(i)+motionWs.get(i);
+		// This is where the weights are combined.	
+		combWgt = audioWs.get(i) + motionWs.get(i);// +  motionWs1.get(i);
 		// ***************************************
 
 		// If this is the first entry into the weighted list, just add shot number and weight to the list
